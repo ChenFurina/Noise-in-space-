@@ -1,0 +1,294 @@
+
+var socket = io(); // the networking library
+var clientData = {}; // stores this particular client's data
+var serverData = {}; // stores other users' data from the server
+var status = "unknown"; // or 'approve' or 'reject', depending on whether the server lets you in
+
+let device_index;
+let mic;
+let deviceNumber;
+let soundLevel = 0;
+let button1,button2,button3,button4;
+let standard_noise = 80;
+let dif_noise;
+let numofseat = 4;
+let scale_s;
+
+
+
+function setup() {
+  createCanvas(windowWidth, windowHeight);
+  
+  mic = new p5.AudioIn();
+  mic.start();
+ 
+  
+  
+  button1 = createButton('1');
+  button1.size(windowWidth/8,windowWidth/8);
+  button1.position(windowWidth/4-windowWidth/16, windowHeight/4);
+  button1.touchStarted(() => data(1));
+  
+  button2 = createButton('2');
+    button2.size(windowWidth/8,windowWidth/8);
+  button2.position(windowWidth/2+windowWidth/4-windowWidth/16, windowHeight/4);
+  button2.touchStarted(() => data(2));
+  
+  button3 = createButton('3');
+  button3.size(windowWidth/8,windowWidth/8);
+  button3.position(windowWidth/4-windowWidth/16, windowHeight/2+windowHeight/4);
+  button3.touchStarted(() => data(3));
+  
+  button4 = createButton('4');
+  button4.size(windowWidth/8,windowWidth/8);
+  button4.position(windowWidth/2+windowWidth/4-windowWidth/16, windowHeight/2+windowHeight/4);
+  button4.touchStarted(() => data(4));
+
+}//windowWidth/2+windowWidth/4, windowHeight/2+windowHeight/4
+
+function startMic() {
+  console.log('Microphone ready');
+}
+
+function draw() {
+  background(140);
+  if (status == "reject"){
+    showMyErrorScreen("Sorry, room is full!\nPlease come back later...");
+    return;
+  } else if (status == "unknown"){
+    showMyErrorScreen("Waiting for server to usher you...");
+    return;
+  }  
+  
+   for(let i =0; i <2; i ++)
+    {
+      for (let j =0; j <2; j++)
+        {
+           drawOffice(windowWidth/2*i+windowWidth/4, windowHeight/2*j+windowHeight/4, 0.8);
+        } 
+    }
+  
+  // 获取当前麦克风声音强度
+  let vol = mic.getLevel();
+  soundLevel = map(vol, 0, 1, 0, 10000);
+  dif_noise = soundLevel - standard_noise;
+  
+//   //绘制声音强度柱状图
+//   fill(0, 128, 255); // 蓝色
+//   rect(width / 2 - 50, height - soundLevel, 100, dif_noise);
+  
+//   //显示声音强度数值
+//   textAlign(CENTER);
+//   textSize(18);
+//   text(`Sound Level: ${soundLevel.toFixed(2)}`, width / 2, height - soundLevel - 10);
+//   ///
+
+  // 2. Update voice data: 
+  
+  clientData.device = device_index;
+  clientData.sound = dif_noise;
+  socket.emit('client-update', clientData);
+
+  // 3. Fetch the other player's data. Since this demo only allows 
+  // two players, we just grab the first item in the table. 
+  // Use a loop to iterate serverData if you want more than
+  // two players (check out sensors-chorus or sensors-rooms)
+  let otherDataIndex = serverData[Object.keys(serverData)[0]];
+  text(otherDataIndex.device, width / 2, height/2-350);
+  //let otheDataNoise = serverData[Object.keys(serverData)[0]];
+  // 4. Draw the players' fingertips.
+  
+}
+
+function data(devicen)
+{
+  device_index = devicen;
+  button1.remove(); 
+  button2.remove();
+  button3.remove();
+  button4.remove();
+  //text1.remove();
+}
+
+
+function drawOffice(x, y, scaleFactor) {
+  push(); // 保存当前画布状态
+  translate(x, y); // 将坐标系移动到指定中心位置
+  
+  // 根据缩放比例进行缩放
+  scale(scaleFactor);
+  
+  // 画桌子
+  fill(255);
+  rect(-100, -40, 200, 100); // 桌面
+  
+  // 画椅子
+  fill(0);
+  rect(-10, 70, 20, 10);
+  fill(255);
+  rect(-40, 80, 80, 50); // 座位
+  rect(-50, 90, 10, 40); // 左扶手
+  rect(40, 90, 10, 40); // 右扶手
+  quad(-40, 130, 40, 130, 30, 140, -30, 140); // 背靠
+  
+  fill(0);
+  circle(30, 140, 3);
+  circle(-30, 140, 3);
+  
+  // 画电脑
+  fill(200);
+  rect(-30, -10, 60, 40); // 主体
+  fill(0);
+  rect(-20, 0, 40, 20); // 屏幕
+  fill(100);
+  ellipse(0, 20, 5, 5); // 摄像头
+  fill(150);
+  rect(-25, 25, 50, 5); // 键盘
+  
+  pop(); // 恢复之前保存的画布状态
+}
+
+
+
+
+//------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//------------------------------------------------
+// Show an error screen if there's a network problem.
+function showMyErrorScreen(msg){
+  textSize(18);
+  background(0);
+  fill(255);
+  noStroke();
+  textAlign(CENTER);
+  text(msg,width/2,height/2);
+}
+
+//------------------------------------------------
+// These event handlers are used by p5.js. See, e.g.
+// https://p5js.org/reference/#/p5/touchStarted, etc.
+//
+function touchStarted(){
+    
+
+  var fs = fullscreen();
+  if (!fs) {
+    /* 
+      Uncomment the line below to put your app in fullscreen.
+      Note, on some devices, being in fullscreen can make it 
+      awkward to access useful things like the page-refresh button.
+      Perhaps just use this for final documentation.
+    */
+    fullscreen(true); 
+  }
+  return false;
+}
+function touchMoved(){
+  return false;
+}
+function touchEnded() {
+  return false;
+}
+// prevents the mobile browser from processing some default
+// touch events, like swiping left for "back" or scrolling the page.
+
+document.ontouchmove = function(event) {
+    event.preventDefault();
+};
+
+function windowResized() { //this detects when the window is resized, such as entering fullscreen mode, or changing orientation of the device.
+  resizeCanvas(windowWidth, windowHeight); //resizes the canvas to the new dimensions 
+}
+
+//------------------------------------------------
+// Event handlers for the Socket library. 
+// You probably won't need to change these. 
+//
+socket.on('connection-approve', function(data){
+  // Update status when server tells us when 
+  // they approve our request to join a room
+  status = "approve";
+})
+socket.on('connection-reject', function(data){
+  // Update status when server tells us when 
+  // they reject our request to join a room
+  status = "reject";
+})
+socket.on('server-update',function(data){
+  // Update our copy of the other players' data
+  // everytime the server sends us an update
+  serverData = data;
+})
+
+// It could happen that you might need to restart the server. 
+// For example, if you encounter the “room is full” message while debugging.
+// If you put the magic word “crash” in the url (like: http://myapp.glitch.me/?crash)
+// then the client will send a message to server to tell it to crash and restart.
+if (window.location.href.includes("crash")){
+  alert("crash!")
+  socket.emit("crash-the-server");
+}
+
+
+//================================================
+// Don't delete these 'comments'; they are necessary to make p5.js work with Glitch.com.
+// First of all, shut glitch up about p5's global namespace pollution using this magic comment:
+/* global describe p5 setup draw P2D WEBGL ARROW CROSS HAND MOVE TEXT WAIT HALF_PI PI QUARTER_PI TAU TWO_PI DEGREES RADIANS DEG_TO_RAD RAD_TO_DEG CORNER CORNERS RADIUS RIGHT LEFT CENTER TOP BOTTOM BASELINE POINTS LINES LINE_STRIP LINE_LOOP TRIANGLES TRIANGLE_FAN TRIANGLE_STRIP QUADS QUAD_STRIP TESS CLOSE OPEN CHORD PIE PROJECT SQUARE ROUND BEVEL MITER RGB HSB HSL AUTO ALT BACKSPACE CONTROL DELETE DOWN_ARROW ENTER ESCAPE LEFT_ARROW OPTION RETURN RIGHT_ARROW SHIFT TAB UP_ARROW BLEND REMOVE ADD DARKEST LIGHTEST DIFFERENCE SUBTRACT EXCLUSION MULTIPLY SCREEN REPLACE OVERLAY HARD_LIGHT SOFT_LIGHT DODGE BURN THRESHOLD GRAY OPAQUE INVERT POSTERIZE DILATE ERODE BLUR NORMAL ITALIC BOLD BOLDITALIC LINEAR QUADRATIC BEZIER CURVE STROKE FILL TEXTURE IMMEDIATE IMAGE NEAREST REPEAT CLAMP MIRROR LANDSCAPE PORTRAIT GRID AXES frameCount deltaTime focused cursor frameRate getFrameRate setFrameRate noCursor displayWidth displayHeight windowWidth windowHeight width height fullscreen pixelDensity displayDensity getURL getURLPath getURLParams pushStyle popStyle popMatrix pushMatrix registerPromisePreload camera perspective ortho frustum createCamera setCamera setAttributes createCanvas resizeCanvas noCanvas createGraphics blendMode noLoop loop push pop redraw applyMatrix resetMatrix rotate rotateX rotateY rotateZ scale shearX shearY translate arc ellipse circle line point quad rect square triangle ellipseMode noSmooth rectMode smooth strokeCap strokeJoin strokeWeight bezier bezierDetail bezierPoint bezierTangent curve curveDetail curveTightness curvePoint curveTangent beginContour beginShape bezierVertex curveVertex endContour endShape quadraticVertex vertex alpha blue brightness color green hue lerpColor lightness red saturation background clear colorMode fill noFill noStroke stroke erase noErase createStringDict createNumberDict storeItem getItem clearStorage removeItem select selectAll removeElements createDiv createP createSpan createImg createA createSlider createButton createCheckbox createSelect createRadio createColorPicker createInput createFileInput createVideo createAudio VIDEO AUDIO createCapture createElement deviceOrientation accelerationX accelerationY accelerationZ pAccelerationX pAccelerationY pAccelerationZ rotationX rotationY rotationZ pRotationX pRotationY pRotationZ pRotateDirectionX pRotateDirectionY pRotateDirectionZ turnAxis setMoveThreshold setShakeThreshold isKeyPressed keyIsPressed key keyCode keyIsDown movedX movedY mouseX mouseY pmouseX pmouseY winMouseX winMouseY pwinMouseX pwinMouseY mouseButton mouseIsPressed requestPointerLock exitPointerLock touches createImage saveCanvas saveGif saveFrames loadImage image tint noTint imageMode pixels blend copy filter get loadPixels set updatePixels loadJSON loadStrings loadTable loadXML loadBytes httpGet httpPost httpDo createWriter save saveJSON saveJSONObject saveJSONArray saveStrings saveTable writeFile downloadFile abs ceil constrain dist exp floor lerp log mag map max min norm pow round sq sqrt fract createVector noise noiseDetail noiseSeed randomSeed random randomGaussian acos asin atan atan2 cos sin tan degrees radians angleMode textAlign textLeading textSize textStyle textWidth textAscent textDescent loadFont text textFont append arrayCopy concat reverse shorten shuffle sort splice subset float int str boolean byte char unchar hex unhex join match matchAll nf nfc nfp nfs split splitTokens trim day hour minute millis month second year plane box sphere cylinder cone ellipsoid torus orbitControl debugMode noDebugMode ambientLight specularColor directionalLight pointLight lights lightFalloff spotLight noLights loadModel model loadShader createShader shader resetShader normalMaterial texture textureMode textureWrap ambientMaterial emissiveMaterial specularMaterial shininess remove canvas drawingContext*/
+// Also socket.io:
+/* global describe io*/
+// Now any other lint errors will be your own problem.
